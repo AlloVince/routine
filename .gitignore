@@ -1,0 +1,30 @@
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+.Python
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+build/
+dist/
+*.egg-info/
+
+# Runtime inputs and outputs: keep the directories, ignore their contents.
+**/in/*
+!**/in/.gitkeep
+**/out/*
+!**/out/.gitkeep
+asr/.env
+asr/in/*
+asr/out/*
+asr/models/*
+!asr/in/.gitkeep
+!asr/out/.gitkeep
+!asr/models/.gitkeep

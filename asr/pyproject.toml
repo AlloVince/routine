@@ -1,0 +1,14 @@
+[project]
+name = "asr"
+version = "0.1.0"
+description = "Transcribe ordered audio files with whisper.cpp"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.scripts]
+asr = "asr:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
