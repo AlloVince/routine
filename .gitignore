@@ -21,6 +21,12 @@ dist/
 !**/in/.gitkeep
 **/out/*
 !**/out/.gitkeep
+psv/in/*
+!psv/in/.gitkeep
+psv/out/*
+!psv/out/.gitkeep
+psv/tools/
+psv/pop-fe-work/
 asr/.env
 asr/in/*
 asr/out/*
