@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 import hashlib
 import json
 import os
@@ -137,7 +138,23 @@ def convert(archives: list[Path]) -> Path:
     return target
 
 
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="上传 PSV 文件并转换 PS1 镜像")
+    parser.add_argument(
+        "--file",
+        type=Path,
+        help="只处理 psv/in/ 下的指定文件",
+    )
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="忽略增量状态，强制覆盖上传",
+    )
+    return parser.parse_args()
+
+
 def main() -> None:
+    args = parse_args()
     INPUT.mkdir(exist_ok=True)
     OUTPUT.mkdir(exist_ok=True)
     state = json.loads(STATE.read_text()) if STATE.exists() else {}
@@ -164,10 +181,32 @@ def main() -> None:
             password=proxy.password,
         )
         socket.socket = socks.socksocket
-    firmware = download_firmware()
-    vpk = next(iter(sorted(INPUT.glob("*.vpk"))), None)
+    firmware = download_firmware() if args.file is None else None
+    vpks = sorted(INPUT.glob("*.vpk"))
     archives = sorted(INPUT.glob("*.7z"))
-    if not vpk and not firmware and not archives:
+    if args.file is not None:
+        selected = args.file if args.file.is_absolute() else INPUT / args.file
+        selected = selected.resolve()
+        input_root = INPUT.resolve()
+        if not selected.is_relative_to(input_root):
+            raise SystemExit("--file 必须指向 psv/in/ 下的文件")
+        if not selected.is_file():
+            raise SystemExit(f"找不到输入文件: {selected}")
+        if selected.name == "661.PBP":
+            firmware = selected
+            vpks = []
+            archives = []
+        elif selected.suffix.lower() == ".vpk":
+            firmware = None
+            vpks = [selected]
+            archives = []
+        elif selected.suffix.lower() == ".7z":
+            firmware = None
+            vpks = []
+            archives = [selected]
+        else:
+            raise SystemExit("--file 只支持 .vpk、.7z 或 661.PBP")
+    if not vpks and not firmware and not archives:
         raise SystemExit("psv/in/ 中没有 VPK、661.PBP 或 7z 文件")
     with FTP() as ftp:
         last_error = None
@@ -182,14 +221,14 @@ def main() -> None:
         if last_error and ftp.sock is None:
             raise last_error
         ftp.login(os.getenv("PSV_FTP_USER", "anonymous"), os.getenv("PSV_FTP_PASSWORD", ""))
-        if vpk:
+        for vpk in vpks:
             key = f"vpk:{vpk.name}"
-            if state.get(key) != sha256(vpk):
+            if args.force or state.get(key) != sha256(vpk):
                 upload(ftp, vpk, "ux0:/data/" + vpk.name)
                 state[key] = sha256(vpk)
         if firmware:
             key = "firmware:661.PBP"
-            if state.get(key) != sha256(firmware):
+            if args.force or state.get(key) != sha256(firmware):
                 upload(ftp, firmware, "ux0:/app/PSPEMUCFW/661.PBP")
                 state[key] = sha256(firmware)
         groups: dict[str, list[Path]] = {}
@@ -199,7 +238,7 @@ def main() -> None:
         for game, group in ordered_groups:
             key = "rom:" + ",".join(path.name for path in group)
             digest = hashlib.sha256("".join(sha256(path) for path in group).encode()).hexdigest()
-            if state.get(key) == digest:
+            if not args.force and state.get(key) == digest:
                 continue
             eboot = convert(group)
             upload(ftp, eboot, f"ux0:/pspemu/PSP/GAME/{game}/EBOOT.PBP")

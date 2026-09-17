@@ -38,6 +38,8 @@ cd psv
 uv run psv
 ```
 
+只处理指定输入并强制覆盖：`uv run psv --file Adrenaline.vpk --force`。
+
 默认连接 `ftp://192.168.50.6:1337`。通过 `PSV_FTP_URL`、`PSV_FTP_USER`、`PSV_FTP_PASSWORD` 和 `PSV_661_PBP_URL` 覆盖连接或固件下载设置。脚本把 VPK 放到 `ux0:/data`，把 PS1 EBOOT 放到 `ux0:/pspemu/PSP/GAME/<游戏名>/`，把 6.61 固件放到 `ux0:/app/PSPEMUCFW/661.PBP`，并在 `psv/out/.state.json` 中记录 SHA-256 以支持增量运行。
 
 ## 相关

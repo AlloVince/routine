@@ -8,7 +8,7 @@
 
 将文件放入 `psv/in/`：
 
-- `Adrenaline.vpk`（或任意 `.vpk`，默认自动识别）
+- `Adrenaline.vpk`（或任意 `.vpk`，脚本会上传 `in/` 中的全部 VPK）
 - PS1 镜像 `.7z`
 - 可选：`661.PBP`。这是 Adrenaline 首次启动需要的官方 PSP 6.61 固件文件；也可用 `PSV_661_PBP_URL` 指向你已确认的官方来源，脚本会下载后上传为 `ux0:/app/PSPEMUCFW/661.PBP`。
 
@@ -24,6 +24,14 @@ uv run psv
 ```bash
 PSV_FTP_URL=ftp://192.168.50.6:1337 uv run psv
 ```
+
+只上传指定文件并强制覆盖远端同名文件：
+
+```bash
+uv run psv --file Adrenaline.vpk --force
+```
+
+`--file` 支持 `in/` 下的 `.vpk`、`.7z` 和 `661.PBP`；不指定时处理全部输入文件。`--force` 忽略本地增量状态，重新上传指定内容。
 
 默认直连 PSV，不继承系统代理，避免局域网传输绕行。确需 SOCKS5 代理时使用 `PSV_USE_PROXY=1 uv run psv`，代理地址依次读取 `PSV_SOCKS_PROXY`、`all_proxy`、`ALL_PROXY`。
 
