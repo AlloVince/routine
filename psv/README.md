@@ -33,8 +33,8 @@ uv run psv --file Adrenaline.vpk --force
 
 `--file` 支持 `in/` 下的 `.vpk`、`.7z` 和 `661.PBP`；不指定时处理全部输入文件。`--force` 忽略本地增量状态，重新上传指定内容。
 
-默认直连 PSV，不继承系统代理，避免局域网传输绕行。确需 SOCKS5 代理时使用 `PSV_USE_PROXY=1 uv run psv`，代理地址依次读取 `PSV_SOCKS_PROXY`、`all_proxy`、`ALL_PROXY`。
+默认直连 PSV，不继承系统代理，避免局域网传输绕行。确需 SOCKS5 代理时使用 `PSV_USE_PROXY=1 uv run psv`，代理地址依次读取 `PSV_SOCKS_PROXY`、`all_proxy`、`ALL_PROXY`。上传直接写入目标路径，不会先删除 PSV 上的文件；若同一路径对应的输入发生变化，目标文件会由新转换结果覆盖。
 
-每次运行都会检查并上传 VPK 到 `ux0:/data`，把 PS1 游戏放到 `ux0:/pspemu/PSP/GAME/<游戏名>/EBOOT.PBP`，同名的 `Disc 1`、`Disc 2` 等 7z 会合并为一个多碟 EBOOT，并用 `.state.json` 记录本地文件 SHA-256，后续新增 ROM 只处理新增或已变化的文件。转换结果保存在 `psv/out/`，不提交到 Git。
+每次运行都会检查并上传 VPK 到 `ux0:/data`，把 PS1 游戏放到 `ux0:/pspemu/PSP/GAME/<游戏名>/EBOOT.PBP`，同名的 `Disc 1`、`Disc 2` 等 7z 会合并为一个多碟 EBOOT。`.state.json` 按输入文件 SHA-256 记录已处理内容；相同输入不会重复转换或上传，新增或变化的输入会重新转换。转换时使用隔离的临时输出目录，不复用 `psv/out/` 中的旧 EBOOT；成功转换结果再写入 `psv/out/`。这些运行状态与结果不提交到 Git。
 
 首次使用仍需在 PSV 的 VitaShell 中安装 VPK；Adrenaline 本身的首次初始化可能要求启动一次并下载/安装 6.61 固件。FTP 只能传输文件，不能替代 PSV 上的安装和首次启动确认。

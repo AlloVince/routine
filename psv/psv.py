@@ -48,16 +48,7 @@ def ftp_path(ftp: FTP, path: str) -> None:
 def upload(ftp: FTP, local: Path, remote: str) -> None:
     parent, filename = remote.rsplit("/", 1)
     ftp_path(ftp, parent)
-    try:
-        ftp.delete(filename)
-    except Exception:
-        pass
-    # VitaShell's FTP server does not reliably implement RNFR/RNTO, so use
-    # STOR on the final name. A failed transfer can be safely retried.
-    try:
-        ftp.delete(f"{filename}.part")
-    except Exception:
-        pass
+    # STOR the final path directly. Do not delete any remote file first.
     total = local.stat().st_size
     sent = 0
     started = time.monotonic()
@@ -105,12 +96,13 @@ def game_name(archive: Path) -> str:
 def convert(archives: list[Path]) -> Path:
     game = game_name(archives[0])
     target = OUTPUT / game / "EBOOT.PBP"
-    if target.exists():
-        return target
     pop_fe = os.getenv("POP_FE", "pop-fe.py")
     with tempfile.TemporaryDirectory(prefix="psv-7z-") as temp:
-        extracted = Path(temp) / "disc"
+        temp_root = Path(temp)
+        extracted = temp_root / "disc"
         extracted.mkdir()
+        converted = temp_root / "converted"
+        converted.mkdir()
         extractor = shutil.which("7z") or shutil.which("7zz")
         if not extractor:
             raise RuntimeError("缺少 7z/7zz，请先安装 p7zip 或 7zip")
@@ -125,16 +117,16 @@ def convert(archives: list[Path]) -> Path:
         target.parent.mkdir(parents=True, exist_ok=True)
         pop_fe_path = Path(pop_fe).resolve()
         subprocess.run(
-            [str(pop_fe_path), f"--psp-dir={target.parent.parent}", *(str(path) for path in candidates)],
+            [str(pop_fe_path), f"--psp-dir={converted}", *(str(path) for path in candidates)],
             check=True,
             cwd=pop_fe_path.parent,
         )
-        generated = next(target.parent.parent.glob("*/EBOOT.PBP"), None)
-        if generated is None:
+        generated_files = sorted(converted.rglob("EBOOT.PBP"))
+        if not generated_files:
             raise RuntimeError(f"pop-fe 未生成 EBOOT.PBP: {archives[0].name}")
-        if generated != target:
-            target.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(generated, target)
+        if len(generated_files) != 1:
+            raise RuntimeError(f"pop-fe 为 {archives[0].name} 生成了多个 EBOOT.PBP")
+        shutil.copy2(generated_files[0], target)
     return target
 
 
